@@ -1,0 +1,8 @@
+bin/
+obj/
+*.dll
+*.pdb
+*.zip
+ATTEMPTS.md
+.vs/
+.idea/

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>ColorSharedChests</AssemblyName>
+    <Version>1.0.5</Version>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultItems>true</EnableDefaultItems>
+  </PropertyGroup>
+  <Target Name="CheckGamePath" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GamePath)/Stardew Valley.dll')" Text="Pass -p:GamePath=your Stardew Valley installation directory." />
+  </Target>
+  <ItemGroup>
+    <Reference Include="$(GamePath)/*.dll"><Private>false</Private></Reference>
+    <Reference Include="$(GamePath)/smapi-internal/0Harmony.dll"><Private>false</Private></Reference>
+    <Reference Include="$(GamePath)/smapi-internal/SMAPI.Toolkit.CoreInterfaces.dll"><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
