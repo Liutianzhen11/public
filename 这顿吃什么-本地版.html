@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<!--
+MIT License
+
+Copyright (c) 2026 Liutianzhen11
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+--> 
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fae84c">
+  <meta name="description" content="这顿吃什么？点击开始，点击暂停，从菜单里随机决定这顿饭。">
+  <title>这顿吃什么 · 本地版</title>
+  <meta name="local-meal-app" content="what-to-eat-local-v1">
+  <style>
+    :root{--yellow:#fae84c;--ink:#253e37;--paper:#fffef8;--muted:#65766f;--green:#28654e}
+    *{box-sizing:border-box}body{margin:0;min-height:100svh;background:var(--yellow);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;display:flex;flex-direction:column}
+    header{width:min(100% - 48px,1080px);margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:26px 0;border-bottom:1px solid #253e3728;font-size:14px;font-weight:600}.brand{display:flex;align-items:center;gap:10px}.brand span{font-size:24px}.tag{font-size:12px;letter-spacing:2px}
+    main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 24px;gap:24px}.intro{text-align:center}.eyebrow{font-size:12px;letter-spacing:3px;font-weight:700;margin:0 0 12px}h1{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:clamp(36px,7vw,64px);font-weight:900;letter-spacing:-2px;margin:0 0 12px}h1 span{display:inline-block;transform:rotate(-7deg)}.subtitle{margin:0;font-size:15px;color:#3e584e}
+    .machine{width:min(100%,490px);background:var(--paper);border:2px solid var(--ink);border-radius:26px;box-shadow:8px 8px 0 var(--ink);padding:26px 32px 30px;display:flex;flex-direction:column;align-items:center;gap:18px}.machine-top{align-self:stretch;display:flex;align-items:center;justify-content:space-between;font-size:11px;letter-spacing:2px;font-weight:700}.dots{display:flex;gap:5px}.dots i{width:6px;height:6px;background:var(--yellow);border:1px solid var(--ink);border-radius:50%}
+    .window{width:100%;min-height:204px;background:#edf3ed;border-radius:16px;border:1px solid #253e371c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:22px 12px}.food-icon{font-size:52px;line-height:1.2}.food-name{font-size:clamp(30px,7vw,44px);font-weight:900;line-height:1.35;margin:0}.status{font-size:13px;color:var(--muted);margin:0;min-height:20px;text-align:center}
+    button{width:100%;border:2px solid var(--ink);border-radius:12px;background:var(--green);color:white;font:700 17px "PingFang SC","Microsoft YaHei",sans-serif;min-height:58px;cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .12s,box-shadow .12s}button:hover{background:#20543f}button:active{transform:translateY(4px);box-shadow:none}button:focus-visible{outline:3px solid var(--ink);outline-offset:5px}button.running{background:var(--yellow);color:var(--ink)}.hint{font-size:11px;color:var(--muted);margin:0}
+    .menu{width:min(100%,550px);text-align:center}.menu-title{font-size:12px;margin:6px 0 14px}.choices{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}.choice{padding:8px 12px;border:1px solid #253e3733;border-radius:24px;font-size:12px;transition:background .15s}.choice.selected{background:var(--ink);color:white;border-color:var(--ink)}footer{text-align:center;padding:18px 24px 24px;font-size:11px;color:#3e584e}.finished .window{background:#e4f0df}.finished .food-icon{animation:pop .3s ease-out}@keyframes pop{50%{transform:scale(1.2) rotate(-8deg)}}
+    @media(max-width:480px){header{width:calc(100% - 36px);padding:18px 0}.tag{letter-spacing:1px;font-size:10px}main{padding:32px 22px;gap:22px}.machine{padding:23px 22px;box-shadow:5px 5px 0 var(--ink)}.window{min-height:185px}.subtitle{font-size:13px}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  .manage-link{width:auto;min-height:34px;font-size:12px;background:transparent;color:var(--ink);box-shadow:none;margin-top:18px;padding:4px 14px}.manage-link:hover{background:#ffffff55}dialog{width:min(460px,calc(100% - 32px));max-height:85svh;border:2px solid var(--ink);border-radius:20px;padding:24px;background:var(--paper);color:var(--ink)}dialog::backdrop{background:#253e3780}dialog h2{margin:0;font-size:22px}.dialog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.small{width:auto;min-height:34px;box-shadow:none;font-size:12px;padding:5px 12px}.close{background:transparent;color:var(--ink)}.close:hover,.delete:hover{background:#e4f0df;color:var(--ink)}label{display:block;font-size:13px;margin:14px 0 7px}input{width:100%;min-height:44px;border:1px solid #65766f;border-radius:8px;padding:10px;font:inherit}input:focus-visible{outline:2px solid var(--green);outline-offset:2px}.form-note{font-size:12px;color:var(--muted);line-height:1.7}.feedback{min-height:22px;font-size:13px;color:#a03223}.add-row{display:flex;gap:8px}.add-row input{min-width:0}.admin-list{display:flex;flex-direction:column;gap:8px;padding:0;max-height:280px;overflow:auto;list-style:none}.admin-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px;border-bottom:1px solid #253e371c}.admin-list span{overflow-wrap:anywhere}.delete{background:transparent;color:var(--ink);flex-shrink:0}.delete:disabled{opacity:.4;cursor:default}[hidden]{display:none!important}
+.github-edit{display:block;background:var(--green);color:white;text-decoration:none;text-align:center;padding:16px;border:2px solid var(--ink);border-radius:12px;font-weight:700}.github-edit:focus-visible{outline:3px solid var(--ink);outline-offset:3px}button:disabled{opacity:.5;cursor:wait}
+  .add-row button,.row-actions{flex-shrink:0;white-space:nowrap}.row-actions{display:flex;gap:6px}.admin-list li>span,.admin-list li>input{flex:1;min-width:0}
+  </style>
+</head>
+<body>
+  <header><div class="brand"><span aria-hidden="true">🍴</span>这顿吃什么</div><div class="tag">本地版 · 离线可用</div></header>
+  <main>
+    <div class="intro"><p class="eyebrow">把选择交给一点运气</p><h1>这顿吃什<span>么</span>？</h1><p class="subtitle">不用再想了，按一下，让今天的饭有着落。</p></div>
+    <section class="machine" aria-label="随机选餐机">
+      <div class="machine-top"><span>今日选餐机</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+      <div class="window"><div class="food-icon" aria-hidden="true">🍽️</div><p class="food-name">等你开饭</p></div>
+      <p class="status" role="status" aria-live="polite">点击开始，再点击暂停，就决定了。</p>
+      <button type="button" id="toggle">开始随机　▶</button>
+      <p class="hint">选项机会均等 · 暂停后还可以再来一次</p>
+    </section>
+    <section class="menu" aria-label="候选美食"><p class="menu-title">这次从这些里面选</p><div class="choices"></div><button class="manage-link" id="manage">管理菜单</button></section>
+  </main>
+  <footer>菜单保存在这个 HTML 文件里，保存后请继续使用同一个文件。</footer>
+  <dialog id="admin-dialog" aria-labelledby="admin-title">
+    <div class="dialog-head"><h2 id="admin-title">管理菜单</h2><button class="small close" id="close-dialog" aria-label="关闭管理菜单">关闭</button></div>
+    <section id="editor">
+      <p class="form-note">修改后点击「保存菜单」写回当前 HTML。首次保存需选择当前文件并允许写入。</p>
+      <form id="add-form"><label for="new-food">新增菜品</label><div class="add-row"><input id="new-food" placeholder="例如：火锅" maxlength="20" required><button class="small" type="submit">添加</button></div></form>
+      <p class="feedback" id="edit-feedback" role="status"></p><ul class="admin-list" id="admin-list"></ul>
+      <button id="save-menu" type="button">保存菜单</button><button class="small close" id="download-html" type="button" style="margin-top:12px">下载更新后的 HTML（备用）</button><p class="form-note">至少保留一个菜品。只有出现「已写入文件」才算完成保存；保存期间请勿关闭网页。</p>
+    </section>
+  </dialog>
+  <script id="embedded-menu" type="application/json">[{"name":"麻辣烫","icon":"🍲"},{"name":"麻辣香锅","icon":"🌶️"},{"name":"面","icon":"🍜"},{"name":"饺子","icon":"🥟"},{"name":"麦当劳","icon":"🍔"},{"name":"肯得记","icon":"🍗"}]</script>
+  <script>
+    const originalTemplate = '<!doctype html>\n' + document.documentElement.outerHTML;
+    let foods = JSON.parse(document.querySelector('#embedded-menu').textContent);
+    const initialMenu = JSON.stringify(foods);
+    let draft = [], saving = false, dirty = false, fileHandle = null, expectedFileText = null;
+    const button = document.querySelector('#toggle');
+    const machine = document.querySelector('.machine');
+    const foodName = document.querySelector('.food-name');
+    const foodIcon = document.querySelector('.food-icon');
+    const status = document.querySelector('.status');
+    const choices = document.querySelector('.choices');
+    function renderChoices() {
+      choices.replaceChildren();
+      foods.forEach(food => { const chip = document.createElement('span'); chip.className = 'choice'; chip.textContent = food.name; choices.append(chip); });
+    }
+    renderChoices();
+    let timer = null;
+    function randomIndex() {
+      const value = new Uint32Array(1);
+      const limit = Math.floor(4294967296 / foods.length) * foods.length;
+      do { crypto.getRandomValues(value); } while (value[0] >= limit);
+      return value[0] % foods.length;
+    }
+    function show(index) {
+      foodName.textContent = foods[index].name;
+      foodIcon.textContent = foods[index].icon;
+      [...choices.children].forEach((chip, i) => chip.classList.toggle('selected', i === index));
+    }
+    button.addEventListener('click', () => {
+      if (timer !== null) {
+        clearInterval(timer); timer = null;
+        show(randomIndex());
+        machine.classList.add('finished'); button.classList.remove('running');
+        button.textContent = '再选一次　↻';
+        status.textContent = `这顿就吃${foodName.textContent}，开饭！`;
+      } else {
+        machine.classList.remove('finished'); button.classList.add('running');
+        button.textContent = '暂停，就吃这个　Ⅱ'; status.textContent = '美食正在轮换，点击暂停揭晓结果。';
+        show(randomIndex()); timer = setInterval(() => show(randomIndex()), 100);
+      }
+    });
+    const dialog = document.querySelector('#admin-dialog');
+    const feedback = document.querySelector('#edit-feedback');
+    const saveButton = document.querySelector('#save-menu');
+    const downloadButton = document.querySelector('#download-html');
+    document.querySelector('#manage').addEventListener('click', () => {
+      if (timer !== null) button.click();
+      draft = foods.map(food => ({...food})); dirty = false; editingIndex = null;
+      renderEditor(); feedback.textContent = typeof window.showOpenFilePicker === 'function'
+        ? '首次保存时，请选择正在使用的 HTML 文件。'
+        : '此浏览器不支持直接覆盖保存，请用电脑端 Chrome／Edge，或使用备用下载。';
+      dialog.showModal(); document.querySelector('#new-food').focus();
+    });
+    function closeDialog() {
+      if (saving) return;
+      if ((dirty || editingIndex !== null) && !confirm('还有未保存的修改，确认放弃并关闭？')) return;
+      dialog.close();
+    }
+    document.querySelector('#close-dialog').addEventListener('click', closeDialog);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); closeDialog(); });
+    dialog.addEventListener('close', () => {
+      dirty = false; draft = []; editingIndex = null; feedback.textContent = '';
+      document.querySelector('#manage').focus();
+    });
+    let editingIndex = null;
+    function renderEditor() {
+      const list = document.querySelector('#admin-list'); list.replaceChildren();
+      draft.forEach((food,index) => {
+        const row = document.createElement('li');
+        const actions = document.createElement('div'); actions.className = 'row-actions';
+        if (editingIndex === index) {
+          const input = document.createElement('input'); input.value = food.name; input.maxLength = 20; input.setAttribute('aria-label', '修改菜品名称');
+          const confirmButton = document.createElement('button'); confirmButton.className = 'small'; confirmButton.textContent = '确定';
+          const cancelButton = document.createElement('button'); cancelButton.className = 'small close'; cancelButton.textContent = '取消';
+          function confirmName() {
+            const name = input.value.trim();
+            if (!name || name.length > 20) { feedback.textContent = '请输入 1～20 个字符的菜品名称。'; input.focus(); return; }
+            if (draft.some((item,i) => i !== index && item.name === name)) { feedback.textContent = '这个菜品已在菜单里。'; input.focus(); return; }
+            if (name !== food.name) { food.name = name; dirty = true; feedback.textContent = '名称已修改，请点击保存菜单。'; }
+            editingIndex = null; renderEditor();
+          }
+          confirmButton.addEventListener('click', confirmName);
+          cancelButton.addEventListener('click', () => { editingIndex = null; renderEditor(); });
+          input.addEventListener('keydown', event => { if (event.key === 'Enter') {event.preventDefault();confirmName();} if (event.key === 'Escape') {event.preventDefault();event.stopPropagation();editingIndex=null;renderEditor();} });
+          actions.append(confirmButton,cancelButton); row.append(input,actions);
+          requestAnimationFrame(() => {input.focus();input.select();});
+        } else {
+          const name = document.createElement('span'); name.textContent = food.name;
+          const edit = document.createElement('button'); edit.className = 'small close'; edit.textContent = '编辑'; edit.setAttribute('aria-label', `编辑${food.name}`); edit.disabled = saving || editingIndex !== null;
+          edit.addEventListener('click', () => {editingIndex=index;renderEditor();});
+          const remove = document.createElement('button'); remove.className = 'small delete'; remove.textContent = '删除';
+          remove.setAttribute('aria-label', `删除${food.name}`); remove.disabled = saving || editingIndex !== null || draft.length === 1;
+          remove.addEventListener('click', () => { if (!saving && draft.length>1) {draft.splice(index,1);dirty=true;renderEditor();feedback.textContent='菜单已修改，请点击保存菜单。';} });
+          actions.append(edit,remove); row.append(name,actions);
+        }
+        list.append(row);
+      });
+      saveButton.disabled = saving || !dirty || editingIndex !== null;
+    }
+    document.querySelector('#add-form').addEventListener('submit', event => {
+      event.preventDefault(); if (saving) return;
+      if (editingIndex !== null) {feedback.textContent='请先确定或取消正在编辑的名称。';return;}
+      const input = document.querySelector('#new-food'); const name = input.value.trim();
+      if (!name || name.length>20) { feedback.textContent='请输入 1～20 个字符的菜品名称。';return; }
+      if (draft.some(food=>food.name===name)) { feedback.textContent='这个菜品已在菜单里。';return; }
+      if (draft.length>=100) {feedback.textContent='最多添加 100 个菜品。';return;}
+      draft.push({name,icon:'🍽️'});dirty=true;input.value='';renderEditor();feedback.textContent='已添加，请点击保存菜单。';input.focus();
+    });
+    function buildHtml(menu) {
+      const page = new DOMParser().parseFromString(originalTemplate, 'text/html');
+      page.querySelector('#embedded-menu').textContent = JSON.stringify(menu).replace(/</g, '\\u003c');
+      return '<!doctype html>\n' + page.documentElement.outerHTML;
+    }
+    function readEmbeddedMenu(text) {
+      const page = new DOMParser().parseFromString(text, 'text/html');
+      if (page.querySelector('meta[name="local-meal-app"]')?.content !== 'what-to-eat-local-v1') throw new Error('请选择当前本地版 HTML 文件，不能选择在线版或其他文件。');
+      try {return JSON.stringify(JSON.parse(page.querySelector('#embedded-menu').textContent));}
+      catch {throw new Error('所选文件的菜单格式无效，请重新选择。');}
+    }
+    function applySavedMenu() {
+      foods = draft.map(food => ({...food})); dirty = false; renderChoices();
+      foodName.textContent = '等你开饭'; foodIcon.textContent = '🍽️'; machine.classList.remove('finished'); button.textContent = '开始随机　▶';
+      status.textContent = '菜单已更新，点击开始随机。';
+    }
+    saveButton.addEventListener('click', async () => {
+      if (saving || !dirty || editingIndex !== null) return;
+      if (typeof window.showOpenFilePicker !== 'function') {feedback.textContent='此浏览器不能直接覆盖文件，请用电脑端 Chrome／Edge，或点击备用下载。';return;}
+      saving = true; renderEditor(); downloadButton.disabled = true; saveButton.textContent = '正在保存…';
+      let stream;
+      try {
+        if (!fileHandle) {
+          const [selected] = await window.showOpenFilePicker({multiple:false,types:[{description:'这顿吃什么本地网页',accept:{'text/html':['.html','.htm']}}]});
+          const text = await (await selected.getFile()).text();
+          if (readEmbeddedMenu(text) !== initialMenu) throw new Error('所选文件的菜单与打开时不一致。请选择当前打开的 HTML；如果文件已被修改，请重新打开最新文件。');
+          fileHandle = selected; expectedFileText = text;
+        }
+        if (await fileHandle.queryPermission({mode:'readwrite'}) !== 'granted' && await fileHandle.requestPermission({mode:'readwrite'}) !== 'granted') throw new Error('没有获得写入权限，修改尚未保存。');
+        const currentText = await (await fileHandle.getFile()).text();
+        if (currentText !== expectedFileText) {fileHandle=null;expectedFileText=null;throw new Error('文件已被其他窗口或程序修改，未覆盖。请先备份当前修改，再重新打开最新文件。');}
+        const output = buildHtml(draft);
+        stream = await fileHandle.createWritable(); await stream.write(output); await stream.close(); stream = null;
+        expectedFileText = output; applySavedMenu(); feedback.textContent = '已写入文件：' + fileHandle.name + '。下次用任何浏览器打开这个文件，即可看到最新菜单。';
+      } catch (error) {
+        if (stream) {try {await stream.abort();} catch {}}
+        feedback.textContent = error.name === 'AbortError' ? '已取消，修改尚未保存。' : error.name === 'NotAllowedError' ? '写入被拒绝，修改尚未保存。请允许文件写入后重试。' : error.message || '保存失败，修改尚未保存。';
+      } finally {saving=false;saveButton.textContent='保存菜单';downloadButton.disabled=false;renderEditor();}
+    });
+    downloadButton.addEventListener('click', () => {
+      if (saving || editingIndex !== null) {feedback.textContent='请先确定或取消正在编辑的名称。';return;}
+      const url = URL.createObjectURL(new Blob([buildHtml(draft)],{type:'text/html;charset=utf-8'}));
+      const link=document.createElement('a');link.href=url;link.download='这顿吃什么-本地版.html';link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);
+      feedback.textContent='已发起下载，请检查下载文件；此操作没有覆盖原文件。';
+    });
+    window.addEventListener('beforeunload', event => {if (dirty || saving || editingIndex !== null) {event.preventDefault();event.returnValue='';}});
+  </script>
+</body>
+</html>
