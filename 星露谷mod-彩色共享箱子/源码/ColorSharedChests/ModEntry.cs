@@ -32,6 +32,8 @@ namespace ColorSharedChests
         private bool reconciling;
         private bool recoveryLogged;
         private IGenericModConfigMenuApi gmcm;
+        private ItemGrabMenu draggingMenu;
+        private int dragOffset;
         private static string T(string zh,string en) => LocalizedContentManager.CurrentLanguageCode==LocalizedContentManager.LanguageCode.zh?zh:en;
 
         private sealed class Placed
@@ -56,6 +58,7 @@ namespace ColorSharedChests
             helper.Events.Multiplayer.ModMessageReceived += OnMessage;
             helper.Events.Display.MenuChanged += OnMenu;
             helper.Events.Input.ButtonPressed += OnButton;
+            helper.Events.GameLoop.UpdateTicked += UpdateScrollDrag;
             helper.Events.Input.MouseWheelScrolled += (s,e)=>{
                 if(Context.IsWorldReady && Game1.activeClickableMenu is ItemGrabMenu menu)Scroll(menu,e.Delta);
             };
@@ -280,19 +283,19 @@ namespace ColorSharedChests
                     }
                     else
                     {
-                        bool recolored=Effective.EnableSharing && old.Value.Any(p=>live.Any(x=>ReferenceEquals(x.Chest,p.Chest)) && Desired(p.Chest)!=old.Key)
-                            && Effective.SharedColors.Any(i=>Prefix+"Color/"+DiscreteColorPicker.getColorFromSelection(i).PackedValue.ToString("X8")==old.Key);
-                        if(recolored)
-                        {
-                            Game1.MasterPlayer.modData[Prefix+"Reserved/"+old.Key.Substring((Prefix+"Color/").Length)]=old.Value[0].Chest.modData[IdKey];
-                            continue;
-                        }
-                        // With no remaining member, retain the items in the moved
-                        // chest or the oldest surviving anchor when sharing is off.
-                        Placed target=old.Value.OrderBy(p=>long.Parse(p.Chest.modData[OrderKey])).First();
+                        // No destination member remains in the old color. Carry
+                        // its inventory through the departing chest, not a hidden
+                        // reserved group. Prefer a surviving chest over a removed one.
+                        Placed target=old.Value.OrderByDescending(p=>live.Any(x=>ReferenceEquals(x.Chest,p.Chest)))
+                            .ThenBy(p=>long.Parse(p.Chest.modData[OrderKey])).First();
                         var actor=Actor(target.Chest);
+                        string next=Desired(target.Chest);
+                        int carryCapacity=next!=null && groups.TryGetValue(next,out var nextMembers)
+                            ?nextMembers.Max(p=>SingleCapacity(p.Chest)):SingleCapacity(target.Chest);
                         target.Chest.GlobalInventoryId=null;target.Chest.modData.Remove(CapacityKey);
-                        TransferAll(inventory,target.Chest.Items,SingleCapacity(target.Chest),target,actor);
+                        TransferAll(inventory,target.Chest.Items,carryCapacity,target,actor);
+                        Game1.MasterPlayer.modData.Remove(Prefix+"Reserved/"+old.Key.Substring((Prefix+"Color/").Length));
+                        Monitor.Log(T("旧颜色已无箱子，库存已转移到当前箱子：","No chest remains in the old color; inventory moved through chest: ")+target.Chest.modData[IdKey],LogLevel.Info);
                         if(!live.Any(p=>ReferenceEquals(p.Chest,target.Chest)))
                         {
                             // A third-party removal must not leave inaccessible
@@ -337,8 +340,7 @@ namespace ColorSharedChests
                         var inv=Game1.player.team.GetOrCreateGlobalInventory(key);
                         if(!inv.HasAny())continue;
                         string reserveKey=Prefix+"Reserved/"+key.Substring((Prefix+"Color/").Length);
-                        bool reserved=Game1.MasterPlayer.modData.TryGetValue(reserveKey,out string anchor);
-                        if(reserved && Effective.EnableSharing && Effective.SharedColors.Any(i=>Prefix+"Color/"+DiscreteColorPicker.getColorFromSelection(i).PackedValue.ToString("X8")==key))continue;
+                        Game1.MasterPlayer.modData.TryGetValue(reserveKey,out string anchor);
                         var target=live.FirstOrDefault(p=>p.Chest.modData[IdKey]==anchor)??live.OrderBy(p=>long.Parse(p.Chest.modData[OrderKey])).FirstOrDefault();
                         if(target!=null)
                         {
@@ -404,6 +406,7 @@ namespace ColorSharedChests
         private Chest CurrentChest() => (Game1.activeClickableMenu as ItemGrabMenu)?.context as Chest;
         private void OnMenu(object sender,MenuChangedEventArgs e)
         {
+            draggingMenu=null;
             if(e.OldMenu is ItemGrabMenu old && old.context is Chest c && Supported(c))Request("hint",c);
             if(e.NewMenu is ItemGrabMenu menu && menu.context is Chest chest && Supported(chest))ConfigurePage(menu,chest);
         }
@@ -411,9 +414,22 @@ namespace ColorSharedChests
         {
             if(!Context.IsWorldReady)return;
             Chest c=CurrentChest();
+            if(e.Button==SButton.MouseLeft && Supported(c) && Game1.activeClickableMenu is ItemGrabMenu scrollMenu &&
+                ScrollLimit(scrollMenu,c)>0 && ScrollTrack(scrollMenu).Contains(Game1.getMouseX(true),Game1.getMouseY(true)))
+            {
+                Helper.Input.Suppress(e.Button);
+                if(scrollMenu.heldItem==null)
+                {
+                    draggingMenu=scrollMenu;
+                    var thumb=ScrollThumb(scrollMenu,c);
+                    dragOffset=thumb.Contains(Game1.getMouseX(true),Game1.getMouseY(true))?Game1.getMouseY(true)-thumb.Y:thumb.Height/2;
+                    UpdateScrollDrag(null,null);
+                }
+                return;
+            }
             bool ctrl=Helper.Input.IsDown(SButton.LeftControl)||Helper.Input.IsDown(SButton.RightControl);
             if(Supported(c)&&Game1.activeClickableMenu is ItemGrabMenu grab&&grab.heldItem==null &&
-                ((ctrl&&e.Button==SButton.N)||(e.Button==SButton.MouseLeft&&RenameBounds(grab).Contains(Game1.getMouseX(),Game1.getMouseY()))))
+                ((ctrl&&e.Button==SButton.N)||(e.Button==SButton.MouseLeft&&RenameBounds(grab).Contains(Game1.getMouseX(true),Game1.getMouseY(true)))))
             {
                 Helper.Input.Suppress(e.Button);
                 string name=c.modData.TryGetValue(NameKey,out string existing)?existing:"";
@@ -442,17 +458,57 @@ namespace ColorSharedChests
         internal bool Scroll(ItemGrabMenu menu,int direction)
         {
             if(!(menu.context is Chest c)||!Supported(c))return false;
-            if(menu.heldItem!=null)return true;
             var grid=menu.ItemsToGrabMenu;
             if(grid==null || grid.inventory.Count==0)return false;
-            var first=grid.inventory[0].bounds;
-            var last=grid.inventory[grid.inventory.Count-1].bounds;
-            if(!new Rectangle(first.X,first.Y,last.Right-first.X,last.Bottom-first.Y).Contains(Game1.getMouseX(),Game1.getMouseY()))return false;
+            var bounds=GridBounds(menu);
+            bool inside=bounds.Contains(Game1.getMouseX(true),Game1.getMouseY(true))||ScrollTrack(menu).Contains(Game1.getMouseX(true),Game1.getMouseY(true));
+            if(!inside){Monitor.Log("Scroll ignored: outside chest UI; mouse="+Game1.getMouseX(true)+","+Game1.getMouseY(true)+" bounds="+bounds,LogLevel.Trace);return false;}
             string id=c.modData.TryGetValue(IdKey,out string s)?s:"local";
             int row=Pages.TryGetValue(id,out int n)?n:0;
-            Pages[id]=Math.Max(0,row+(direction<0?1:-1));
+            Pages[id]=Math.Clamp(row+(direction<0?1:-1),0,ScrollLimit(menu,c));
             ConfigurePage(menu,c);
+            Monitor.Log("Scroll: row="+Pages[id]+" limit="+ScrollLimit(menu,c)+" capacity="+c.GetActualCapacity(),LogLevel.Trace);
             return true;
+        }
+        private static Rectangle GridBounds(ItemGrabMenu menu)
+        {
+            var slots=menu.ItemsToGrabMenu?.inventory;
+            if(slots==null||slots.Count==0)return Rectangle.Empty;
+            var bounds=slots[0].bounds;
+            foreach(var slot in slots)bounds=Rectangle.Union(bounds,slot.bounds);
+            return bounds;
+        }
+        private static int ScrollLimit(ItemGrabMenu menu,Chest c)
+        {
+            var grid=menu.ItemsToGrabMenu;
+            if(grid==null||grid.inventory.Count==0)return 0;
+            int slots=grid.inventory.Count,columns=Math.Max(1,slots/Math.Max(1,grid.rows));
+            return Math.Max(0,(c.GetActualCapacity()-slots+columns-1)/columns);
+        }
+        private static Rectangle ScrollTrack(ItemGrabMenu menu)
+        {
+            var grid=GridBounds(menu);
+            return new Rectangle(grid.Right+8,grid.Top,24,grid.Height);
+        }
+        private Rectangle ScrollThumb(ItemGrabMenu menu,Chest c)
+        {
+            var track=ScrollTrack(menu);
+            int height=Math.Clamp((int)(track.Height*Math.Min(1f,menu.ItemsToGrabMenu.inventory.Count/(float)Math.Max(1,c.GetActualCapacity()))),32,Math.Max(32,track.Height));
+            string id=c.modData.TryGetValue(IdKey,out string s)?s:"local";
+            int row=Pages.TryGetValue(id,out int n)?n:0,max=ScrollLimit(menu,c);
+            return new Rectangle(track.X,track.Y+(max>0?(int)((track.Height-height)*(Math.Clamp(row,0,max)/(float)max)):0),track.Width,height);
+        }
+        private void UpdateScrollDrag(object sender,UpdateTickedEventArgs e)
+        {
+            if(draggingMenu==null)return;
+            if(Game1.activeClickableMenu!=draggingMenu || Microsoft.Xna.Framework.Input.Mouse.GetState().LeftButton!=Microsoft.Xna.Framework.Input.ButtonState.Pressed || draggingMenu.heldItem!=null)
+            {draggingMenu=null;return;}
+            if(!(draggingMenu.context is Chest c)||!Supported(c)){draggingMenu=null;return;}
+            var track=ScrollTrack(draggingMenu);var thumb=ScrollThumb(draggingMenu,c);
+            float ratio=Math.Clamp((Game1.getMouseY(true)-dragOffset-track.Y)/(float)Math.Max(1,track.Height-thumb.Height),0f,1f);
+            string id=c.modData.TryGetValue(IdKey,out string s)?s:"local";
+            Pages[id]=(int)Math.Round(ratio*ScrollLimit(draggingMenu,c));
+            ConfigurePage(draggingMenu,c);
         }
         private static Rectangle RenameBounds(ItemGrabMenu menu)
         {
@@ -470,11 +526,17 @@ namespace ColorSharedChests
             // Restore the authoritative scrolling view without copying any items.
             ConfigurePage(menu,c);
             var rect=RenameBounds(menu);
-            bool hover=rect.Contains(Game1.getMouseX(),Game1.getMouseY());
+            bool hover=rect.Contains(Game1.getMouseX(true),Game1.getMouseY(true));
             IClickableMenu.drawTextureBox(e.SpriteBatch,Game1.mouseCursors,new Rectangle(432,439,9,9),rect.X,rect.Y,rect.Width,rect.Height,hover?new Color(255,245,210):Color.White,4f,false);
             string label=T("重命名","Rename");
             var size=Game1.smallFont.MeasureString(label);
             e.SpriteBatch.DrawString(Game1.smallFont,label,new Vector2(rect.Center.X-size.X/2,rect.Center.Y-size.Y/2),new Color(70,40,20));
+            if(ScrollLimit(menu,c)>0)
+            {
+                var track=ScrollTrack(menu);var thumb=ScrollThumb(menu,c);
+                e.SpriteBatch.Draw(Game1.staminaRect,track,new Color(100,60,30));
+                IClickableMenu.drawTextureBox(e.SpriteBatch,Game1.mouseCursors,new Rectangle(432,439,9,9),thumb.X,thumb.Y,thumb.Width,thumb.Height,draggingMenu==menu?new Color(255,240,180):Color.White,2f,false);
+            }
         }
         private void Status()
         {

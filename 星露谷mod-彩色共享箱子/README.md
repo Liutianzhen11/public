@@ -1,5 +1,15 @@
 # 星露谷 mod · 彩色共享箱子
 
+## 当前版本：1.0.8 实验版
+
+[下载 1.0.8 安装包](./ColorSharedChests-1.0.8.zip) · [当前中文使用说明](./ColorSharedChests/README.md) · [English](./ColorSharedChests/README.en.md) · [更新日志](./ColorSharedChests/CHANGELOG-1.0.8.md) · [当前源码](./源码/ColorSharedChests/)
+
+本次修复最后一个同色箱改回默认颜色时库存无法访问的问题；旧组还有箱子时物品仍留在旧组。包含滚轮/拖拽滚动条及完整库存整理、补充堆叠修正。已进行编译与局部迁移测试，完整游戏内及联机验证仍待完成。升级前备份存档，退出游戏后覆盖安装，保留已有 config.json；所有联机玩家须使用相同版本。
+
+安装包 SHA256：`848B5ABA79CDA4FC6476ED891307CFE4804C5B121834B54221C4A0D2ED2E6425`。
+
+以下为 1.0.5 历史说明，涉及改色库存暂存及滚动限制的旧规则以以上新版说明为准；旧压缩包保留供回溯，不建议降级已有存档。
+
 彩色共享箱子（Color Shared Chests）**1.0.5 实验版**：为《星露谷物语》的常规箱子提供独立命名、额外容量，以及同一存档中跨地图的同色共享库存。
 
 [直接下载原始 ZIP 安装及源码包](https://github.com/Liutianzhen11/public/raw/refs/heads/main/星露谷mod-彩色共享箱子/ColorSharedChests-1.0.5-20261015-084342.zip) · [查看已解压安装文件](./ColorSharedChests/) · [查看源码](./源码/ColorSharedChests/)

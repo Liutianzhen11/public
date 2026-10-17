@@ -1,6 +1,10 @@
 # Color Shared Chests
 
-[中文说明](README.md) · Version 1.0.5 · Experimental
+1.0.7 fixes Organize and Fill Existing Stacks only processing visible slots. Both now use the full inventory, including offscreen slots, with vanilla stacking rules. Compilation and patch targets checked; in-game interaction remains unverified.
+
+[中文说明](README.md) · Version 1.0.8 · Experimental
+
+1.0.8 returns the old group's inventory to the last departing chest when it is recolored. Changing the last yellow chest back to undyed restores independent access to its items. See [release notes](CHANGELOG-1.0.8.md); in-game and multiplayer acceptance testing remains pending.
 
 A Stardew Valley SMAPI mod for per-chest names, extra storage rows, and save-wide shared inventories based on vanilla chest dye colors.
 
@@ -26,9 +30,9 @@ Source downloads alone are not compiled installation packages. See Building belo
 - Extra rows: 0–10, with **12 slots per extra row**. The same increment applies to all supported types. Base capacities remain type-specific.
 - Undyed chests are independent by default; all 20 dyed colors share. Each settings row has a swatch and checkbox.
 - Click Rename beside the chest name bar; Ctrl+N is a fallback. Empty input removes the custom name. Names belong to individual chests, not groups.
-- Hover chest slots and scroll to move one row at a time. Scrolling is blocked while holding an item.
+- Hover chest slots and scroll to move one row at a time, even while holding an item. When content exceeds the visible slots, a vertical scrollbar appears beside the grid. Drag it or click the track with an empty hand. UI-scaled coordinates are used for hit testing.
 - Close the menu and Ctrl+right-click a nearby chest to pick it up. If other group members remain, items stay in the shared group; the last chest takes its inventory with it.
-- Changing dye leaves the old group's items behind. If no chest remains in that color, the inventory is reserved until a chest rejoins, or the color/sharing is disabled.
+- Changing dye leaves items in the old group if another chest remains. Otherwise items follow the departing chest: undyed means independent storage; another shared color merges them into its group. Legacy orphaned reserved inventories return to their recorded anchor, or the oldest remaining chest if that anchor is absent. Overflow follows the existing backpack/drop rules.
 - Joins merge existing items. Overflow from merging or reducing capacity goes to the acting player's backpack, then drops near the operation chest. Global changes use the group's oldest remaining anchor. Settings migration waits until chest menus are closed.
 - UI follows game language: Chinese for Chinese; English otherwise. Custom names are not translated.
 

@@ -1,7 +1,7 @@
 {
   "Name": "彩色共享箱子 / Color Shared Chests",
   "Author": "Local",
-  "Version": "1.0.5",
+  "Version": "1.0.8",
   "Description": "箱子重命名、额外容量排数及跨地图同色共享库存，支持房主管理和联机同步。",
   "UniqueID": "Local.ColorSharedChests",
   "EntryDll": "ColorSharedChests.dll",

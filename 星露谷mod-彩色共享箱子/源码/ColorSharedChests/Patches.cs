@@ -87,11 +87,36 @@ namespace ColorSharedChests
         private static Exception Finalizer(Exception __exception,Chest __state)
         {ModEntry.ConstructingMenu=__state;return __exception;}
     }
+    // Bulk actions must use the authoritative inventory, not the scrolling view.
+    [HarmonyPatch(typeof(ItemGrabMenu), nameof(ItemGrabMenu.organizeItemsInList))]
+    internal static class OrganizeFullInventoryPatch
+    {
+        private static void Prefix(ref IList<Item> items)
+        {
+            if(items is InventoryWindow window)items=window.Source;
+        }
+    }
+    [HarmonyPatch(typeof(ItemGrabMenu), "FillOutStacks")]
+    internal static class FillFullInventoryPatch
+    {
+        private static void Prefix(ItemGrabMenu __instance,out InventoryWindow __state)
+        {
+            __state=__instance.ItemsToGrabMenu?.actualInventory as InventoryWindow;
+            if(__state!=null)__instance.ItemsToGrabMenu.actualInventory=__state.Source;
+        }
+        // Restore even if vanilla or another patch throws during the operation.
+        private static Exception Finalizer(ItemGrabMenu __instance,InventoryWindow __state,Exception __exception)
+        {
+            if(__state!=null)__instance.ItemsToGrabMenu.actualInventory=__state;
+            return __exception;
+        }
+    }
     // A view onto the same inventory, never a copied item list. Bounds on the
     // last page prevent adding items to slots beyond the authoritative capacity.
     internal sealed class InventoryWindow : IList<Item>
     {
         private readonly IList<Item> source;
+        internal IList<Item> Source=>source;
         private readonly int offset;
         public int Count {get;}
         public bool IsReadOnly=>false;
